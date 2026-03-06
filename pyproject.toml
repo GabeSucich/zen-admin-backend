@@ -1,0 +1,19 @@
+[project]
+name = "zen-admin-backend"
+version = "0.1.0"
+description = "Zen Admin Backend"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "alembic>=1.16.5",
+    "asyncpg>=0.31.0",
+    "bcrypt>=5.0.0",
+    "fastapi>=0.128.0",
+    "fastapi-login>=1.10.3",
+    "greenlet>=3.2.4",
+    "passlib>=1.7.4",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.1",
+    "sqlalchemy>=2.0.46",
+    "uvicorn>=0.39.0",
+]
