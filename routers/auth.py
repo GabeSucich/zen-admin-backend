@@ -2,7 +2,8 @@ import asyncio
 
 from pydantic import BaseModel
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi.security import APIKeyHeader
 from fastapi_login import LoginManager
 from utils.auth import verify_password
 from database import async_session
@@ -13,6 +14,9 @@ from models import User
 from utils.env_vars import EnvVarName, load_env_var
 
 manager = LoginManager(load_env_var(EnvVarName.SECRET), token_url="/auth/login")
+
+N8N_API_KEY = load_env_var(EnvVarName.N8N_API_KEY)
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 router = APIRouter(tags=["Auth"])
 
@@ -36,6 +40,16 @@ async def load_user(username: str):
                 raise
             await asyncio.sleep(2)
 
+async def require_auth(request: Request, api_key: str | None = Security(api_key_header)):
+    # Try API key first (n8n)
+    if api_key is not None:
+        if api_key != N8N_API_KEY:
+            raise HTTPException(status_code=403, detail="Invalid API key")
+        return None
+    # Fall back to JWT token (user dashboard)
+    user = await manager(request)
+    return user
+
 class LoginRequestData(BaseModel):
     username: str
     password: str
@@ -49,7 +63,7 @@ class LoginResponseData(BaseModel):
 @router.post("/login", operation_id="login", response_model=LoginResponseData)
 async def login(data: LoginRequestData) -> LoginResponseData:
     user = await load_user(data.username)
-    if not verify_password(data.password, user.password):
+    if not user or not verify_password(data.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid password")
     token = manager.create_access_token(data={"sub": user.username})
     return LoginResponseData(user_id=user.id, first_name=user.first_name, last_name=user.last_name, token=token)

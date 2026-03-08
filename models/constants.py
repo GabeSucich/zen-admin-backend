@@ -5,13 +5,19 @@ class TodoSource(StrEnum):
     MANUAL = "manual"
 
 class TodoType(StrEnum):
-    NEW_CLIENT_REVIEW = "New Client Review"
-    FOLLOW_UP = "Follow Up"
-    MANUAL = "Manual"
+    MANUAL_EVENT_REVIEW = "Manual Event Review"
+    NEW_CLIENT_ONBOARDING = "New Client Onboarding"
+    CONSULTATION_BILLING_REVIEW = "Consultation Billing Review"
+    GENERAL = "General"
 
 class Location(StrEnum):
     EVERGREEN = "Evergreen"
     CHICAGO = "Chicago"
+
+class MeetingType(StrEnum):
+    NEW_PATIENT_CONSULTATION = "New Patient Consultation"
+    FOLLOW_UP_CONSULTATION = "Follow Up Consultation"
+    OTHER = "Other"
 
 class MembershipStatus(StrEnum):
     MEMBER = "Member"
