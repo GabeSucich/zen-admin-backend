@@ -29,7 +29,7 @@ def log_error_to_db(func):
     return wrapper
 
 
-async def log_background_error(task_name: str, error: Exception):
+async def log_background_error(task_name: str, error: Exception, *, calendar_event_id: int | None = None):
     """Log a background task error to the database."""
     try:
         async with async_session() as session:
@@ -39,6 +39,7 @@ async def log_background_error(task_name: str, error: Exception):
                 error_type=type(error).__name__,
                 error_message=str(error),
                 traceback_str=traceback.format_exc(),
+                calendar_event_id=calendar_event_id,
             )
             session.add(err)
             await session.commit()

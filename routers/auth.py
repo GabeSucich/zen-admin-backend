@@ -1,4 +1,5 @@
 import asyncio
+from datetime import timedelta
 
 from pydantic import BaseModel
 
@@ -13,7 +14,11 @@ from sqlalchemy import select
 from models import User
 from utils.env_vars import EnvVarName, load_env_var
 
-manager = LoginManager(load_env_var(EnvVarName.SECRET), token_url="/auth/login")
+manager = LoginManager(
+    load_env_var(EnvVarName.SECRET), 
+    token_url="/auth/login",
+    default_expiry=timedelta(hours=48)
+)
 
 N8N_API_KEY = load_env_var(EnvVarName.N8N_API_KEY)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -44,7 +49,7 @@ async def require_auth(request: Request, api_key: str | None = Security(api_key_
     # Try API key first (n8n)
     if api_key is not None:
         if api_key != N8N_API_KEY:
-            raise HTTPException(status_code=403, detail="Invalid API key")
+            raise HTTPException(status_code=401, detail="Invalid API key")
         return None
     # Fall back to JWT token (user dashboard)
     user = await manager(request)
@@ -67,3 +72,8 @@ async def login(data: LoginRequestData) -> LoginResponseData:
         raise HTTPException(status_code=401, detail="Invalid password")
     token = manager.create_access_token(data={"sub": user.username})
     return LoginResponseData(user_id=user.id, first_name=user.first_name, last_name=user.last_name, token=token)
+
+
+@router.get("/health", dependencies=[Depends(require_auth)])
+async def health_check():
+    return {"success": True}

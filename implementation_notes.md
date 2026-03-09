@@ -44,6 +44,21 @@
 | `routers/n8n_ingestion.py` | N8N calendar ingestion endpoints (`/n8n/filter-events`, `/n8n/process-events`) |
 | `routers/clients.py` | Client CRUD endpoints (`/clients/`) |
 | `routers/calendar_suggestions.py` | Calendar suggestion endpoints (`/calendar-suggestions/`) |
+| `utils/todo_builder.py` | `build_todos_from_client_meeting` — shared todo generation logic |
+
+## Post-Design Adjustments
+
+15. **`CalendarEventClientSuggestion.client_id` is nullable** — If the LLM cannot determine a first/last name from the calendar event, no `Client` is created and `client_id` is set to `None` on the suggestion. The `ClientMatchResult` schema now allows `first_name` and `last_name` to be null. Todo titles will use "Unknown" as the name in this case.
+
+16. **Idempotent event processing** — Added `ProcessingState` enum (`IN_PROGRESS`, `COMPLETE`, `ERROR`) and a `processing_state` column on `CalendarEvent`. The `/n8n/filter-events` route returns errored event IDs alongside truly new ones, so N8N can retry failures. `_process_single_event` reuses the existing `CalendarEvent` row on retry instead of creating a duplicate. The `Error` model now has an optional `calendar_event_id` FK so errors from background processing are linked to the relevant calendar event.
+
+17. **No todos created without a client** — During `process_events`, if the pipeline cannot resolve a `client_id` (no name extracted and no match found), the `CalendarEventClientSuggestion` is still created with `client_id=None` but no todos are generated. Todos are only created upon `confirm_suggestion` when a client is provided.
+
+18. **`confirm_suggestion` regenerates todos** — On confirmation, all existing todos for the suggestion are deleted and regenerated using the (possibly replaced) client. This ensures todos always reflect the confirmed client. If both the suggestion's `client_id` and `replacement_client_id` are `None`, a 400 error is returned.
+
+19. **`_build_todo_for_meeting` → `build_todos_from_client_meeting`** — Renamed and moved to `utils/todo_builder.py` for reuse across `n8n_ingestion.py` and `calendar_suggestions.py`. Now returns `list[Todo]` for future extensibility. Later refactored to be template-driven (see #20).
+
+20. **Template-driven todo creation** — `build_todos_from_client_meeting` now queries `MeetingTypeTodoTemplates` from the DB instead of using hardcoded logic. Templates are filtered by `meeting_type` and ordered by `order`. Each template's `days_until_due` is added to `today` to compute the todo's `due_date`. The function is now async and requires a `db` session parameter. The old hardcoded titles/notes and `_estimate_duration_minutes` helper were removed.
 
 ## Dependencies Added
 
