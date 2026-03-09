@@ -74,6 +74,7 @@ class TodoResponse(BaseModel):
     completed_at: datetime | None
     source: TodoSource
     todo_type: TodoType
+    client: ClientResponse | None
     created_at: datetime
     updated_at: datetime
 

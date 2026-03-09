@@ -3,6 +3,7 @@ from datetime import date, datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from database import get_db
 from models.db import Todo, CalendarEventClientSuggestion
@@ -11,6 +12,15 @@ from schemas import TodoResponse, CreateTodoRequest, UpdateTodoRequest, ChangeDu
 from utils.error_logging import log_error_to_db
 
 router = APIRouter(prefix="/todos", tags=["Todos"])
+
+
+async def _get_todo_with_client(db: AsyncSession, todo_id: int) -> Todo | None:
+    result = await db.execute(
+        select(Todo)
+        .where(Todo.id == todo_id)
+        .options(selectinload(Todo.client))
+    )
+    return result.scalar_one_or_none()
 
 
 @router.get("/confirmed", response_model=list[TodoResponse])
@@ -30,6 +40,7 @@ async def get_confirmed_todos(
                 CalendarEventClientSuggestion.user_confirmed == True,
             )
         )
+        .options(selectinload(Todo.client))
     )
 
     if due_before_or_on is not None:
@@ -48,8 +59,7 @@ async def get_confirmed_todos(
 @router.get("/{todo_id}", response_model=TodoResponse)
 @log_error_to_db
 async def get_todo(todo_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Todo).where(Todo.id == todo_id))
-    todo = result.scalar_one_or_none()
+    todo = await _get_todo_with_client(db, todo_id)
     if todo is None:
         raise HTTPException(status_code=404, detail="Todo not found")
     return TodoResponse.from_model(todo)
@@ -68,15 +78,14 @@ async def create_todo(data: CreateTodoRequest, db: AsyncSession = Depends(get_db
     )
     db.add(todo)
     await db.commit()
-    await db.refresh(todo)
+    todo = await _get_todo_with_client(db, todo.id)
     return TodoResponse.from_model(todo)
 
 
 @router.patch("/{todo_id}", response_model=TodoResponse)
 @log_error_to_db
 async def update_todo(todo_id: int, data: UpdateTodoRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Todo).where(Todo.id == todo_id))
-    todo = result.scalar_one_or_none()
+    todo = await _get_todo_with_client(db, todo_id)
     if todo is None:
         raise HTTPException(status_code=404, detail="Todo not found")
 
@@ -85,20 +94,19 @@ async def update_todo(todo_id: int, data: UpdateTodoRequest, db: AsyncSession = 
         setattr(todo, field, value)
 
     await db.commit()
-    await db.refresh(todo)
+    todo = await _get_todo_with_client(db, todo_id)
     return TodoResponse.from_model(todo)
 
 
 @router.post("/{todo_id}/complete", response_model=TodoResponse)
 @log_error_to_db
 async def mark_todo_complete(todo_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Todo).where(Todo.id == todo_id))
-    todo = result.scalar_one_or_none()
+    todo = await _get_todo_with_client(db, todo_id)
     if todo is None:
         raise HTTPException(status_code=404, detail="Todo not found")
     todo.completed_at = datetime.now(tz=timezone.utc)
     await db.commit()
-    await db.refresh(todo)
+    todo = await _get_todo_with_client(db, todo_id)
     return TodoResponse.from_model(todo)
 
 
@@ -109,13 +117,12 @@ async def change_due_date(
     data: ChangeDueDateRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Todo).where(Todo.id == todo_id))
-    todo = result.scalar_one_or_none()
+    todo = await _get_todo_with_client(db, todo_id)
     if todo is None:
         raise HTTPException(status_code=404, detail="Todo not found")
     todo.due_date = data.due_date
     await db.commit()
-    await db.refresh(todo)
+    todo = await _get_todo_with_client(db, todo_id)
     return TodoResponse.from_model(todo)
 
 

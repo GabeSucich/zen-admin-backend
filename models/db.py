@@ -65,8 +65,7 @@ class CalendarEventClientSuggestion(Base):
 class Todo(Base):
     __tablename__ = "todos"
 
-    order: Mapped[int] = mapped_column(Integer, autoincrement=True)
-    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
+    client_id: Mapped[Optional[int]] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), nullable=True, default=None)
     cal_event_client_suggestion_id: Mapped[Optional[int]] = mapped_column(ForeignKey("calendar_event_client_suggestions.id"), nullable=True, default=None)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
@@ -105,7 +104,7 @@ class MeetingTypeTodoTemplates(Base):
     title: Mapped[str] = mapped_column(Text)
     notes: Mapped[str] = mapped_column(Text)
     days_until_due: Mapped[int] = mapped_column(Integer)
-    order: Mapped[int] = mapped_column(Integer)
+    order: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=None)
 
 
 

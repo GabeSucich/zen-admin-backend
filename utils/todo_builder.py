@@ -9,7 +9,7 @@ from models.db import MeetingTypeTodoTemplates, Todo
 
 async def build_todos_from_client_meeting(
     db: AsyncSession,
-    client_id: int,
+    client_id: int | None,
     suggestion_id: int,
     meeting_type: MeetingType,
     today: date,
