@@ -45,11 +45,23 @@ async def load_user(username: str):
                 raise
             await asyncio.sleep(2)
 
+async def wake_db():
+    for attempt in range(3):
+        try:
+            async with async_session() as db:
+                await db.execute(select(1))
+                return
+        except Exception:
+            if attempt == 2:
+                raise
+            await asyncio.sleep(2)
+
 async def require_auth(request: Request, api_key: str | None = Security(api_key_header)):
     # Try API key first (n8n)
     if api_key is not None:
         if api_key != N8N_API_KEY:
             raise HTTPException(status_code=401, detail="Invalid API key")
+        await wake_db()
         return None
     # Fall back to JWT token (user dashboard)
     user = await manager(request)
