@@ -29,7 +29,7 @@ async def get_unconfirmed_suggestions(
         .order_by(CalendarEvent.start_time.asc())
         .options(
             selectinload(CalendarEventClientSuggestion.client),
-            selectinload(CalendarEventClientSuggestion.todos),
+            selectinload(CalendarEventClientSuggestion.todos).selectinload(Todo.client),
             selectinload(CalendarEventClientSuggestion.cal_event),
         )
     )
@@ -50,7 +50,7 @@ async def confirm_suggestion(
         .where(CalendarEventClientSuggestion.id == suggestion_id)
         .options(
             selectinload(CalendarEventClientSuggestion.client),
-            selectinload(CalendarEventClientSuggestion.todos),
+            selectinload(CalendarEventClientSuggestion.todos).selectinload(Todo.client),
             selectinload(CalendarEventClientSuggestion.cal_event),
         )
     )
@@ -101,15 +101,16 @@ async def confirm_suggestion(
 
     await db.commit()
 
-    # Reload to return fresh data
+    # Reload to return fresh data (populate_existing to refresh expired identity-mapped objects)
     result = await db.execute(
         select(CalendarEventClientSuggestion)
         .where(CalendarEventClientSuggestion.id == suggestion_id)
         .options(
             selectinload(CalendarEventClientSuggestion.client),
-            selectinload(CalendarEventClientSuggestion.todos),
+            selectinload(CalendarEventClientSuggestion.todos).selectinload(Todo.client),
             selectinload(CalendarEventClientSuggestion.cal_event),
         )
+        .execution_options(populate_existing=True)
     )
     suggestion = result.scalar_one_or_none()
     return CalendarEventClientSuggestionResponse.from_model(suggestion)

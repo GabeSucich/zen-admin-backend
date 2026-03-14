@@ -41,6 +41,7 @@ async def get_confirmed_todos(
             )
         )
         .options(selectinload(Todo.client))
+        .order_by(Todo.due_date.asc(), Todo.created_at.asc())
     )
 
     if due_before_or_on is not None:
@@ -70,6 +71,7 @@ async def get_todo(todo_id: int, db: AsyncSession = Depends(get_db)):
 async def create_todo(data: CreateTodoRequest, db: AsyncSession = Depends(get_db)):
     todo = Todo(
         client_id=data.client_id,
+        cal_event_client_suggestion_id=data.cal_event_client_suggestion_id,
         title=data.title,
         notes=data.notes,
         due_date=data.due_date,

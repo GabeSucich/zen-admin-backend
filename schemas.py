@@ -87,6 +87,7 @@ class TodoResponse(BaseModel):
 
 class CreateTodoRequest(BaseModel):
     client_id: int | None = None
+    cal_event_client_suggestion_id: int | None = None
     title: str
     notes: str | None = None
     due_date: date
