@@ -86,6 +86,11 @@ async def login(data: LoginRequestData) -> LoginResponseData:
     return LoginResponseData(user_id=user.id, first_name=user.first_name, last_name=user.last_name, token=token)
 
 
+@router.post("/logout", dependencies=[Depends(require_auth)])
+async def logout():
+    return {"success": True}
+
+
 @router.get("/health", dependencies=[Depends(require_auth)])
 async def health_check():
     return {"success": True}
