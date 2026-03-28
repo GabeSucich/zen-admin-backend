@@ -6,6 +6,8 @@ class EnvVarName(StrEnum):
     DATABASE_URL="DATABASE_URL"
     N8N_API_KEY="N8N_API_KEY"
     OPENAI_API_KEY="OPENAI_API_KEY"
+    GRANOLA_API_KEY="GRANOLA_API_KEY"
+    GRANOLA_API_BASE_URL="GRANOLA_API_BASE_URL"
 
 def load_env_var(env_var: EnvVarName):
     return os.environ[env_var.value]

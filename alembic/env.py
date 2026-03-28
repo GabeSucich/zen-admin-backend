@@ -1,14 +1,35 @@
+import os
+import sys
 from logging.config import fileConfig
 
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
 from models.base import Base
 
+load_dotenv()
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Override sqlalchemy.url from environment variable if set
+url = os.getenv("DATABASE_URL")
+if url:
+    # Alembic runs synchronously, so convert asyncpg URL to psycopg2-compatible
+    url = url.replace("+asyncpg", "")
+    # asyncpg uses ssl=require, psycopg2 uses sslmode=require
+    url = url.replace("ssl=require", "sslmode=require")
+    config.set_main_option("sqlalchemy.url", url)
+
+# Safety check: confirm before running migrations against non-local databases
+effective_url = config.get_main_option("sqlalchemy.url") or ""
+if "localhost" not in effective_url:
+    response = input(f"You are running migrations against non-dev DB url {effective_url}. Is this your intention? (Y/N) ")
+    if response.strip().lower() != "y":
+        sys.exit(1)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:

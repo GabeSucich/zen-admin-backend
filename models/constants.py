@@ -31,3 +31,6 @@ class MembershipStatus(StrEnum):
     MEMBER = "Member"
     NON_MEMBER = "Non Member"
     GRANDFATHERED = "Grandfathered"
+
+class MeetingNotesSource(StrEnum):
+    GRANOLA = "Granola"

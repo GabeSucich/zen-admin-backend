@@ -1,13 +1,13 @@
 from datetime import date, datetime
 from typing import Any, Dict, Optional
 
-from sqlalchemy import Boolean, DateTime, Integer, Text, Date, Enum, ForeignKey, Text
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, Date, Enum, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import relationship
 
 from .base import Base
-from .constants import MeetingType, MembershipStatus, Location, ProcessingState, TodoSource, TodoType
+from .constants import MeetingType, MembershipStatus, Location, ProcessingState, TodoSource, TodoType, MeetingNotesSource
 
 class User(Base):
     __tablename__ = "users"
@@ -61,6 +61,17 @@ class CalendarEventClientSuggestion(Base):
     client: Mapped[Optional['Client']] = relationship("Client", back_populates="cal_event_client_suggestion")
     cal_event: Mapped['CalendarEvent'] = relationship("CalendarEvent", back_populates="cal_event_client_suggestions")
 
+class CalendarEventMeetingNotes(Base):
+    __tablename__ = "calendar_event_meeting_notes"
+
+    calendar_event_id: Mapped[int] = mapped_column(ForeignKey("calendar_events.id"))
+    note_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    title: Mapped[str] = mapped_column(String)
+    notes_text: Mapped[str] = mapped_column(Text)
+    notes_markdown: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)
+    user_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    source: Mapped[MeetingNotesSource] = mapped_column(Enum(MeetingNotesSource), default=MeetingNotesSource.GRANOLA)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
 
 class Todo(Base):
     __tablename__ = "todos"
@@ -92,8 +103,10 @@ class Error(Base):
     calendar_event: Mapped[Optional['CalendarEvent']] = relationship("CalendarEvent", back_populates="errors")
 
 class ProcessEventLog(Base):
-
     __tablename__ = "process_event_logs"
+
+class ProcessMeetingNotesLog(Base):
+    __tablename__ = "process_meeting_notes_logs"
 
 
 class MeetingTypeTodoTemplates(Base):

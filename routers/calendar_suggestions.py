@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -14,6 +14,28 @@ from utils.error_logging import log_error_to_db
 from utils.todo_builder import build_todos_from_client_meeting
 
 router = APIRouter(prefix="/calendar-suggestions", tags=["CalendarSuggestions"])
+
+
+@router.get("/all", response_model=list[CalendarEventClientSuggestionResponse])
+@log_error_to_db
+async def get_all_suggestions(
+    since: datetime = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Fetch all CalendarEventClientSuggestions for events before the given timestamp."""
+    result = await db.execute(
+        select(CalendarEventClientSuggestion)
+        .join(CalendarEvent)
+        .where(CalendarEvent.start_time >= since)
+        .order_by(CalendarEvent.start_time.asc())
+        .options(
+            selectinload(CalendarEventClientSuggestion.client),
+            selectinload(CalendarEventClientSuggestion.todos).selectinload(Todo.client),
+            selectinload(CalendarEventClientSuggestion.cal_event),
+        )
+    )
+    suggestions = result.scalars().all()
+    return [CalendarEventClientSuggestionResponse.from_model(s) for s in suggestions]
 
 
 @router.get("/", response_model=list[CalendarEventClientSuggestionResponse])

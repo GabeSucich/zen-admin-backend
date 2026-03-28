@@ -145,6 +145,102 @@ async def match_client_to_existing(
     return response.choices[0].message.parsed
 
 
+class CalendarEventForMatching(BaseModel):
+    id: int
+    title: str
+    description: str | None
+    start_time: str
+
+
+class GranolaNoteForMatching(BaseModel):
+    id: str
+    title: str
+    created_at: str
+
+
+class NoteToEventMatch(BaseModel):
+    granola_note_id: str
+    calendar_event_id: int | None
+
+
+class NoteToEventMatchResult(BaseModel):
+    matches: list[NoteToEventMatch]
+
+
+async def match_notes_to_events(
+    events: list[CalendarEventForMatching],
+    notes: list[GranolaNoteForMatching],
+) -> list[NoteToEventMatch]:
+    """Match Granola notes to calendar events based on title similarity and time proximity."""
+    import json
+    events_json = json.dumps([e.model_dump() for e in events], indent=2)
+    notes_json = json.dumps([n.model_dump() for n in notes], indent=2)
+
+    response = await openai_client.beta.chat.completions.parse(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are matching meeting notes from Granola to calendar events. "
+                    "Match each Granola note to the most likely calendar event based on title similarity. "
+                    "If multiple calendar events have similar titles, prefer the one whose start_time "
+                    "is closest to the Granola note's created_at. "
+                    "If no calendar event is a reasonable match, return null for calendar_event_id. "
+                    "Return a match for every Granola note provided."
+                    "Each Granola note can be matched to AT MOST one calendar event. Do NOT list the same granola not match for multiple calendar events."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Calendar events:\n{events_json}\n\n"
+                    f"Granola notes:\n{notes_json}"
+                ),
+            },
+        ],
+        response_format=NoteToEventMatchResult,
+    )
+    return response.choices[0].message.parsed.matches
+
+
+class ActionItem(BaseModel):
+    title: str
+    description: str
+
+
+class ActionItemsResult(BaseModel):
+    action_items: list[ActionItem]
+
+
+async def extract_granola_meeting_action_items(notes_content: str) -> ActionItemsResult:
+    """Extract suggested action items from meeting notes."""
+    response = await openai_client.beta.chat.completions.parse(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are reviewing meeting notes from a session between a healthcare provider "
+                    "(Doctor Bex) and a client. Extract a list of action items that need to be "
+                    "completed as follow-ups from this meeting.\n\n"
+                    "For each action item:\n"
+                    "- title: A short, declarative phrase (3-5 words)\n"
+                    "- description: A 1-2 sentence explanation of what needs to be done\n\n"
+                    "Only include actionable follow-up tasks. If there are no clear action items, "
+                    "return an empty list."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Meeting notes:\n{notes_content}",
+            },
+        ],
+        response_format=ActionItemsResult,
+    )
+    return response.choices[0].message.parsed
+
+
 class MeetingTypeResult(BaseModel):
     meeting_type: MeetingType
 

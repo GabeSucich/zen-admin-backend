@@ -10,6 +10,7 @@ from models.db import (
     Todo as TodoModel,
 )
 from utils.gcal import gcal_event_link
+from utils.openai_helpers import ActionItem
 
 
 # --- Client Schemas ---
@@ -209,3 +210,41 @@ class UpdateMeetingTypeTodoTemplateRequest(BaseModel):
     notes: str | None = None
     days_until_due: int | None = None
     order: int | None = None
+
+# --- Meeting Notes Schemas ---
+
+class IngestGranolaNotesRequest(BaseModel):
+    days_ago: int = 7
+
+class IngestGranolaNotesResponse(BaseModel):
+    skipped_count: int
+    skipped_note_ids: list[str]
+    matched_count: int
+    matched_note_ids: list[str]
+    unmatched_count: int
+    unmatched_note_ids: list[str]
+
+class ConfirmMeetingNotesRequest(BaseModel):
+    meeting_notes_id: int
+
+class ArchiveMeetingNotesRequest(ConfirmMeetingNotesRequest): ...
+
+class ActionItemResponse(BaseModel):
+    title: str
+    description: str
+
+class ActionItemsResponse(BaseModel):
+    action_items: list[ActionItem]
+
+class GranolaMeetingNotesResponse(BaseModel):
+    id: int
+    calendar_event_id: int
+    note_id: str
+    title: str
+    notes_text: str
+    notes_markdown: str | None
+    user_confirmed: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

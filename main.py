@@ -10,6 +10,7 @@ from routers.auth import require_auth, router as auth_router
 from routers.todos import router as todos_router
 from routers.clients import router as clients_router
 from routers.calendar_suggestions import router as calendar_suggestions_router
+from routers.meeting_notes import router as meeting_notes_router
 from routers.meeting_types import router as meeting_types_router
 from routers.meeting_type_todo_templates import router as meeting_type_todo_templates_router
 from routers.n8n_ingestion import router as n8n_router
@@ -32,6 +33,7 @@ app.include_router(calendar_suggestions_router, dependencies=[Depends(require_au
 app.include_router(meeting_types_router, dependencies=[Depends(require_auth)])
 app.include_router(meeting_type_todo_templates_router, dependencies=[Depends(require_auth)])
 app.include_router(n8n_router, dependencies=[Depends(require_auth)])
+app.include_router(meeting_notes_router, dependencies=[Depends(require_auth)])
 
 app.add_middleware(
       CORSMiddleware,

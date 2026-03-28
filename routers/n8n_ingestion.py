@@ -37,7 +37,7 @@ async def process_calendar_events(
         select(ProcessEventLog).order_by(desc(ProcessEventLog.id)).limit(1)
     )
     last_log = result.scalar_one_or_none()
-    if last_log and last_log.created_at > datetime.utcnow() - timedelta(minutes=2):
+    if last_log and last_log.created_at.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc) - timedelta(minutes=2):
         return {"success": False, "detail": "Cannot call process-events more frequently than every 2 minutes"}
 
     # Look up existing calendar events for the submitted event IDs
