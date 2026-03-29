@@ -14,6 +14,7 @@ from routers.meeting_notes import router as meeting_notes_router
 from routers.meeting_types import router as meeting_types_router
 from routers.meeting_type_todo_templates import router as meeting_type_todo_templates_router
 from routers.n8n_ingestion import router as n8n_router
+from routers.errors import router as error_router
 from fastapi.middleware.cors import CORSMiddleware 
 
 def generate_operation_id(route: APIRoute) -> str:
@@ -34,6 +35,7 @@ app.include_router(meeting_types_router, dependencies=[Depends(require_auth)])
 app.include_router(meeting_type_todo_templates_router, dependencies=[Depends(require_auth)])
 app.include_router(n8n_router, dependencies=[Depends(require_auth)])
 app.include_router(meeting_notes_router, dependencies=[Depends(require_auth)])
+app.include_router(error_router, dependencies=[Depends(require_auth)])
 
 app.add_middleware(
       CORSMiddleware,

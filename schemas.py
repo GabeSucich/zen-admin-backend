@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from re import S
 
 from pydantic import BaseModel, computed_field
 
@@ -248,3 +249,20 @@ class GranolaMeetingNotesResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+# --- Errors Schemas ---
+
+class ErrorResponse(BaseModel):
+    id: int
+    endpoint: str
+    error_type: str
+    error_message: str
+    traceback_str: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ErrorListResponse(BaseModel):
+    items: list[ErrorResponse]
+    next_cursor: int | None = None
