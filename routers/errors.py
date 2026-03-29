@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
@@ -15,12 +15,17 @@ router = APIRouter(prefix="/errors", tags=["Errors"])
 async def list_errors(
     page_size: int = Query(default=10, ge=1, le=100),
     cursor: int | None = Query(default=None),
+    since: datetime | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> ErrorListResponse:
     query = (
         select(Error)
         .order_by(Error.created_at.desc(), Error.id.desc())
     )
+
+    if since is not None:
+        since_utc = since.astimezone(timezone.utc).replace(tzinfo=None)
+        query = query.where(Error.created_at > since_utc)
 
     if cursor is not None:
         query = query.where(Error.id < cursor)
